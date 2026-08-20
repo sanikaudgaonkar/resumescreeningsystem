@@ -1,137 +1,557 @@
 """
 STAGE 4: INFORMATION EXTRACTION
-Pulls structured fields out of resume text: skills, education, experience,
-job titles.
 
-NOTE ON SCOPE: skill extraction here (SKILLS_DB keyword match) is used
-ONLY to populate extracted_info.skills for display and LLM context — it
-is NOT used for scoring/matching. Actual resume-to-JD matching is fully
-semantic (see semantic_matching.py + skill_matching.py), so there's no
-keyword list to maintain for that purpose. This function stays simple.
+Extracts structured information from resumes:
 
-Experience-years extraction tries two strategies: explicit "X years"
-phrasing, and (more commonly how resumes actually look) summing date
-ranges like "November 2025 - January 2026" from work/project sections.
+- Skills
+- Education
+- Professional experience
+- Experience duration
+- Job titles
+
+Important:
+Experience duration is calculated from work/internship
+date ranges only. Education and project dates are not
+counted as professional experience.
 """
+
 import re
 from datetime import datetime
-import spacy
 
-_nlp = spacy.load("en_core_web_sm")
 
-# Used only for display/context (extracted_info.skills), not for scoring.
-# TODO: expand as needed, or load from a file/DB instead of hardcoding.
+# ============================================================
+# SKILLS
+# ============================================================
+
 SKILLS_DB = [
-    # Languages
-    "python", "java", "javascript", "typescript", "c", "c++", "c#",
+
+    # -------------------------
+    # UI / UX
+    # -------------------------
+
+    "figma",
+    "figjam",
+    "adobe xd",
+    "sketch",
+    "photoshop",
+    "illustrator",
+
+    "ui design",
+    "ux design",
+    "ui/ux",
+    "user experience",
+    "user interface",
+
+    "wireframing",
+    "wireframes",
+    "wireframe",
+
+    "prototyping",
+    "prototype",
+    "prototypes",
+
+    "user research",
+    "ux research",
+    "usability testing",
+
+    "interaction design",
+    "visual design",
+    "design systems",
+    "design system",
+
+    "user flows",
+    "user flow",
+
+    "information architecture",
+
+    "responsive design",
+    "responsive web design",
+
+    "usability",
+    "accessibility",
+
+    "design thinking",
+
+    # -------------------------
     # Frontend
-    "react", "html", "css", "node.js",
-    # Backend / frameworks
-    "fastapi", "django", "flask", "spring boot", "spring security",
-    "rest api", "rest apis", "restful api", "restful apis",
+    # -------------------------
+
+    "html",
+    "css",
+    "javascript",
+    "typescript",
+    "react",
+    "next.js",
+    "tailwind",
+    "tailwind css",
+
+    # -------------------------
+    # Backend
+    # -------------------------
+
+    "node.js",
+    "node",
+    "express",
+    "fastapi",
+    "flask",
+    "django",
+
+    # -------------------------
+    # Languages
+    # -------------------------
+
+    "python",
+    "java",
+    "c",
+    "c++",
+    "c#",
+
+    # -------------------------
     # Databases
-    "sql", "postgresql", "mysql", "mongodb", "hibernate",
-    # Cloud / infra
-    "aws", "azure", "gcp", "docker", "kubernetes",
+    # -------------------------
+
+    "sql",
+    "mysql",
+    "postgresql",
+    "mongodb",
+
+    # -------------------------
     # Tools
-    "git", "github", "postman",
-    # ML / AI
-    "machine learning", "deep learning", "nlp", "pandas", "numpy",
-    "tensorflow", "pytorch", "spacy", "random forest", "xgboost",
-    "vector database", "vector databases", "embedding", "embeddings",
-    "rag", "langchain", "pinecone", "chromadb", "sentence-transformers",
-    "llm", "llm integration", "generative ai",
-    # Auth / architecture
-    "oauth2", "jwt", "role-based access control", "microservices",
-    # Data / BI
-    "excel", "tableau", "power bi",
+    # -------------------------
+
+    "git",
+    "github",
+    "postman",
+
+    # -------------------------
+    # AI / ML
+    # -------------------------
+
+    "machine learning",
+    "deep learning",
+    "nlp",
+    "pandas",
+    "numpy",
+    "tensorflow",
+    "pytorch",
+    "rag",
+    "langchain",
+    "chromadb",
+    "llm",
+    "generative ai",
+
+    # -------------------------
     # Soft skills
-    "communication", "leadership", "project management",
+    # -------------------------
+
+    "communication",
+    "leadership",
+    "teamwork",
+    "collaboration",
 ]
 
+
+# ============================================================
+# EDUCATION
+# ============================================================
+
 EDUCATION_KEYWORDS = [
-    "bachelor", "master", "phd", "b.tech", "m.tech", "mba", "b.sc", "m.sc",
-    "b.e", "bachelor of engineering", "bachelor's", "master's", "doctorate",
+    "bachelor",
+    "master",
+    "phd",
+    "b.tech",
+    "m.tech",
+    "mba",
+    "b.sc",
+    "m.sc",
+    "b.e",
+    "bachelor of engineering",
+    "bachelor's",
+    "master's",
+    "doctorate",
     "associate degree",
 ]
 
+
+# ============================================================
+# MONTHS
+# ============================================================
+
 MONTHS = {
-    "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
-    "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
+    "jan": 1,
+    "feb": 2,
+    "mar": 3,
+    "apr": 4,
+    "may": 5,
+    "jun": 6,
+    "jul": 7,
+    "aug": 8,
+    "sep": 9,
+    "oct": 10,
+    "nov": 11,
+    "dec": 12,
 }
 
 
+# ============================================================
+# EXPERIENCE SECTION DETECTION
+# ============================================================
+
+EXPERIENCE_HEADINGS = [
+    "experience",
+    "work experience",
+    "professional experience",
+    "internship",
+    "internships",
+    "employment",
+    "work history",
+    "career history",
+]
+
+
+NON_EXPERIENCE_HEADINGS = [
+    "education",
+    "projects",
+    "academic projects",
+    "certifications",
+    "skills",
+    "achievements",
+    "awards",
+    "activities",
+    "extracurricular",
+]
+
+
+def get_experience_section(text: str) -> str:
+    """
+    Extract the experience section from a resume.
+
+    Stops when another major resume section begins.
+    """
+
+    lines = [
+        line.strip()
+        for line in text.splitlines()
+        if line.strip()
+    ]
+
+    inside_experience = False
+    experience_lines = []
+
+    for line in lines:
+
+        normalized = line.lower().strip(" :")
+
+        # Start experience section
+        if any(
+            heading == normalized
+            for heading in EXPERIENCE_HEADINGS
+        ):
+            inside_experience = True
+            continue
+
+        # Stop at another major section
+        if inside_experience and any(
+            heading == normalized
+            for heading in NON_EXPERIENCE_HEADINGS
+        ):
+            break
+
+        if inside_experience:
+            experience_lines.append(line)
+
+    return "\n".join(experience_lines)
+
+
+# ============================================================
+# SKILL EXTRACTION
+# ============================================================
+
 def extract_skills(text: str) -> list[str]:
-    """Simple keyword match — used only for display/context, not scoring."""
+    """
+    Extract skills from resume text.
+
+    Used for structured information and later
+    hybrid matching.
+    """
+
     text_lower = text.lower()
-    found = [skill for skill in SKILLS_DB if skill in text_lower]
+
+    found = []
+
+    for skill in SKILLS_DB:
+
+        # Word-boundary matching prevents things such as
+        # "c" accidentally matching every word containing c.
+        pattern = r"(?<!\w)" + re.escape(skill) + r"(?!\w)"
+
+        if re.search(pattern, text_lower):
+            found.append(skill)
+
     return sorted(set(found))
 
+
+# ============================================================
+# EDUCATION EXTRACTION
+# ============================================================
 
 def extract_education(text: str) -> list[str]:
+    """
+    Extract education-related terms.
+    """
+
     text_lower = text.lower()
-    found = [kw for kw in EDUCATION_KEYWORDS if kw in text_lower]
+
+    found = []
+
+    for keyword in EDUCATION_KEYWORDS:
+
+        if keyword in text_lower:
+            found.append(keyword)
+
     return sorted(set(found))
 
 
-def extract_experience_years(text: str) -> float | None:
-    """Two strategies, tried in order:
-    1. Explicit statement — "5 years of experience", "3+ years"
-    2. Date ranges — "November 2025 - January 2026", "2023 - 2027",
-       "2022 - Present" — summed across all matches found. This is how
-       most resumes actually present experience (internships, jobs,
-       education duration), rather than stating a total up front.
+# ============================================================
+# DATE RANGE EXTRACTION
+# ============================================================
 
-    Note: this sums ALL date ranges found, including education duration —
-    it's a rough signal, not a precise "years of professional experience"
-    calculation. TODO: separate education date ranges from work-experience
-    date ranges (e.g. by section) for a more accurate number.
+DATE_RANGE_PATTERN = re.compile(
+    r"""
+    (?:
+        (jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)
+        \.? \s*
+    )?
+    (\d{4})
+
+    \s*
+    [-–—]
+    \s*
+
+    (?:
+        (jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)
+        \.? \s*
+    )?
+
+    (\d{4}|present|current)
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
+
+
+def parse_date_range(
+    start_month,
+    start_year,
+    end_month,
+    end_year,
+):
     """
-    text_lower = text.lower()
+    Convert a date range into number of months.
+    """
 
-    explicit_matches = re.findall(r"(\d+(?:\.\d+)?)\s*\+?\s*years?", text_lower)
-    if explicit_matches:
-        return max(float(m) for m in explicit_matches)
+    start_year = int(start_year)
 
-    range_pattern = re.compile(
-        r"(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)?\.?\s*(\d{4})\s*"
-        r"[-–—]\s*"
-        r"(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)?\.?\s*(\d{4}|present|current)",
-        re.IGNORECASE,
+    start_month_num = (
+        MONTHS.get(
+            start_month[:3].lower(),
+            1,
+        )
+        if start_month
+        else 1
     )
 
+    if end_year.lower() in (
+        "present",
+        "current",
+    ):
+
+        now = datetime.now()
+
+        end_year_num = now.year
+        end_month_num = now.month
+
+    else:
+
+        end_year_num = int(end_year)
+
+        end_month_num = (
+            MONTHS.get(
+                end_month[:3].lower(),
+                12,
+            )
+            if end_month
+            else 12
+        )
+
+    months = (
+        (end_year_num - start_year) * 12
+        + (end_month_num - start_month_num)
+    )
+
+    if months <= 0:
+        return None
+
+    # Prevent obviously broken ranges
+    if months > 120:
+        return None
+
+    return months
+
+
+# ============================================================
+# EXPERIENCE EXTRACTION
+# ============================================================
+
+def extract_experience_years(
+    text: str
+) -> float | None:
+    """
+    Calculate professional experience ONLY from the
+    resume's experience section.
+
+    Education and project dates are ignored.
+    """
+
+    experience_text = get_experience_section(
+        text
+    )
+
+    if not experience_text:
+        return None
+
     total_months = 0
-    for start_mon, start_year, end_mon, end_year in range_pattern.findall(text_lower):
-        start_m = MONTHS.get(start_mon[:3], 1) if start_mon else 1
-        start_y = int(start_year)
 
-        if end_year in ("present", "current"):
-            end_y, end_m = datetime.now().year, datetime.now().month
-        else:
-            end_m = MONTHS.get(end_mon[:3], 12) if end_mon else 12
-            end_y = int(end_year)
+    for match in DATE_RANGE_PATTERN.finditer(
+        experience_text
+    ):
 
-        months = (end_y - start_y) * 12 + (end_m - start_m)
-        if 0 < months < 600:
+        (
+            start_month,
+            start_year,
+            end_month,
+            end_year,
+        ) = match.groups()
+
+        months = parse_date_range(
+            start_month,
+            start_year,
+            end_month,
+            end_year,
+        )
+
+        if months:
             total_months += months
 
-    return round(total_months / 12, 1) if total_months else None
+    if total_months == 0:
+        return None
+
+    return round(
+        total_months / 12,
+        1,
+    )
 
 
-def extract_job_titles(text: str) -> list[str]:
-    """Placeholder — spaCy's default model doesn't know "job title" as an
-    entity type, so this just returns short noun chunks as a rough guess.
-    TODO: replace with a job-title gazetteer match or a fine-tuned NER
-    model for real accuracy."""
-    doc = _nlp(text)
-    candidates = [chunk.text for chunk in doc.noun_chunks if len(chunk.text.split()) <= 4]
-    return candidates[:5]
+# ============================================================
+# JOB TITLE EXTRACTION
+# ============================================================
+
+JOB_TITLE_PATTERN = re.compile(
+    r"""
+    (?:
+        ui/?ux
+        |
+        frontend
+        |
+        front-end
+        |
+        backend
+        |
+        back-end
+        |
+        full[- ]stack
+        |
+        software
+        |
+        product
+        |
+        graphic
+        |
+        web
+        |
+        data
+        |
+        machine learning
+    )
+    \s+
+    (?:
+        designer
+        |
+        developer
+        engineer
+        intern
+        analyst
+        researcher
+        scientist
+    )
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
 
 
-def extract_information(cleaned_text: str) -> dict:
+def extract_job_titles(
+    text: str
+) -> list[str]:
+    """
+    Extract likely job titles using common
+    role-title patterns.
+    """
+
+    titles = JOB_TITLE_PATTERN.findall(
+        text
+    )
+
+    # The regex uses groups, so rebuild from
+    # actual matching spans instead.
+    matches = JOB_TITLE_PATTERN.finditer(
+        text
+    )
+
+    result = [
+        match.group(0).strip()
+        for match in matches
+    ]
+
+    return sorted(
+        set(result),
+        key=str.lower,
+    )
+
+
+# ============================================================
+# MAIN INFORMATION EXTRACTION
+# ============================================================
+
+def extract_information(
+    cleaned_text: str
+) -> dict:
+
     return {
-        "skills": extract_skills(cleaned_text),
-        "education": extract_education(cleaned_text),
-        "experience_years": extract_experience_years(cleaned_text),
-        "job_titles": extract_job_titles(cleaned_text),
+
+        "skills": extract_skills(
+            cleaned_text
+        ),
+
+        "education": extract_education(
+            cleaned_text
+        ),
+
+        "experience_years":
+            extract_experience_years(
+                cleaned_text
+            ),
+
+        "job_titles":
+            extract_job_titles(
+                cleaned_text
+            ),
     }
