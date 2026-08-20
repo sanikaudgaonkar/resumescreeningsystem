@@ -1,21 +1,19 @@
-# Environment secrets — NEVER commit these
+
 .env
 backend/.env
 
-# Python
 backend/venv/
 backend/__pycache__/
 backend/**/__pycache__/
 *.pyc
 
-# ChromaDB local data
+
 backend/chroma_data/
 
-# Uploaded resume files
 backend/uploads/*.pdf
 backend/uploads/*.docx
 backend/resume_screening.db
 
-# Node / frontend
+
 frontend/node_modules/
 frontend/dist/
