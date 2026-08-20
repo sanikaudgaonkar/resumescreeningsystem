@@ -1,0 +1,32 @@
+# --- Web framework ---
+fastapi==0.115.0
+email-validator==2.2.0
+uvicorn[standard]==0.30.6
+python-multipart==0.0.9
+numpy
+
+# --- PDF / DOCX parsing ---
+pdfplumber==0.11.4
+PyMuPDF>=1.24.11
+python-docx==1.1.2
+
+# --- NLP ---
+spacy==3.7.6
+# after install run: python -m spacy download en_core_web_sm
+
+# --- Embeddings ---
+sentence-transformers==3.1.1
+
+# --- Vector DB (local, no signup needed) ---
+chromadb==0.5.5
+
+# --- Database ---
+sqlalchemy==2.0.35
+psycopg2-binary==2.9.9   # only needed if you switch to Postgres
+
+# --- LLM feedback ---
+google-generativeai==0.8.2
+
+# --- Utilities ---
+python-dotenv==1.0.1
+pydantic==2.9.2
