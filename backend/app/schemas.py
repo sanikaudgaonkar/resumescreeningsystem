@@ -115,21 +115,43 @@ class AnalysisRequest(BaseModel):
 
     job_description: str
 
+class GapItem(BaseModel):
+    requirement: str
+    status: str      # "matched" | "missing"
+    urgency: str      # "CRITICAL" | "HIGH" | "MEDIUM" | "LOW"
+    score: float
+    evidence: Optional[str] = None
+
+
+class Roadmap(BaseModel):
+    immediate: List[str] = []
+    next: List[str] = []
+    optional: List[str] = []
+
+
+class GapSummary(BaseModel):
+    critical_gaps: int
+    high_gaps: int
+    medium_gaps: int
+    low_gaps: int
+    total_matched: int
+
+
+class GapAnalysis(BaseModel):
+    requirement_breakdown: List[GapItem] = []
+    roadmap: Roadmap
+    summary: GapSummary
 
 # ============================================================
 # ANALYSIS RESPONSE
 # ============================================================
 
+
 class AnalysisResponse(BaseModel):
-
     resume_id: str
-
     extracted_info: ExtractedInfo
-
     sentiment: SentimentResult
-
     match_score: MatchScore
-
+    gap_analysis: GapAnalysis
     llm_feedback: str
-
     summary: str
