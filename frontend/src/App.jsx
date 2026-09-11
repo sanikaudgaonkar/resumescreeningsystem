@@ -4,6 +4,8 @@ import {
   uploadJobDescription,
   analyzeResume,
 } from "./api";
+import ProfileSummary from "./components/ProfileSummary";
+import GapAnalysis from "./components/GapAnalysis";
 import "./App.css";
 
 export default function App() {
@@ -608,6 +610,19 @@ export default function App() {
           </section>
 
 
+          {/* CANDIDATE PROFILE (skills / education / experience / tone) */}
+
+          <ProfileSummary
+            extractedInfo={result.extracted_info}
+            sentiment={result.sentiment}
+          />
+
+
+          {/* GAP ANALYSIS + PRIORITIZED ROADMAP */}
+
+          <GapAnalysis gapAnalysis={result.gap_analysis} />
+
+
           {/* REQUIREMENT BREAKDOWN */}
 
           <section className="requirements-section">
@@ -648,9 +663,19 @@ export default function App() {
 
                       <div className="requirement-top">
 
-                        <h3>
-                          {requirement.requirement}
-                        </h3>
+                        <div>
+
+                          <h3>
+                            {requirement.requirement}
+                          </h3>
+
+                          {requirement.category && (
+                            <span className="category-badge">
+                              {requirement.category}
+                            </span>
+                          )}
+
+                        </div>
 
                         <strong>
                           {score}%
@@ -682,6 +707,28 @@ export default function App() {
                             "No supporting evidence found."
                           }
                         </p>
+
+                        {requirement.supporting_evidence &&
+                          requirement.supporting_evidence.length > 1 && (
+
+                            <details className="more-evidence">
+
+                              <summary>
+                                +{requirement.supporting_evidence.length - 1}{" "}
+                                more supporting snippet(s)
+                              </summary>
+
+                              <ul>
+                                {requirement.supporting_evidence
+                                  .slice(1)
+                                  .map((snippet, i) => (
+                                    <li key={i}>{snippet}</li>
+                                  ))}
+                              </ul>
+
+                            </details>
+
+                          )}
 
                       </div>
 

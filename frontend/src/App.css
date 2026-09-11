@@ -521,6 +521,221 @@ button {
 
 
 /* =========================
+   CANDIDATE PROFILE
+========================= */
+
+.profile-section {
+  margin-top: 35px;
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.profile-card {
+  border: 1px solid #d8d8e3;
+  border-radius: 12px;
+  padding: 20px;
+  background: white;
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.chip {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background: #f0effa;
+  color: #171d91;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.chip-alt {
+  background: #f4f4f4;
+  color: #444555;
+}
+
+.stat-number {
+  display: block;
+  font-size: 24px;
+  color: #171d91;
+  margin-top: 14px;
+}
+
+.stat-number.capitalize {
+  text-transform: capitalize;
+}
+
+.empty-text {
+  color: #90919e;
+  font-size: 13px;
+  margin: 12px 0 0;
+}
+
+
+/* =========================
+   GAP ANALYSIS + ROADMAP
+========================= */
+
+.gap-section {
+  margin-top: 35px;
+}
+
+.gap-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.gap-tile {
+  border-radius: 12px;
+  padding: 18px;
+  text-align: center;
+  border: 1px solid transparent;
+}
+
+.gap-tile strong {
+  display: block;
+  font-size: 26px;
+}
+
+.gap-tile span {
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  font-weight: 700;
+}
+
+.tile-critical {
+  background: #fdecec;
+  color: #b3261e;
+}
+
+.tile-high {
+  background: #fdf1e4;
+  color: #b56a10;
+}
+
+.tile-medium {
+  background: #fdfae4;
+  color: #8a7c10;
+}
+
+.tile-low {
+  background: #f0f0f5;
+  color: #55566a;
+}
+
+.tile-matched {
+  background: #e9f7ec;
+  color: #237a3c;
+}
+
+.roadmap-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.roadmap-column {
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #d8d8e3;
+  background: white;
+  border-top: 4px solid #d8d8e3;
+}
+
+.roadmap-column h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+
+.roadmap-subtitle {
+  margin: 0 0 14px;
+  font-size: 12px;
+  color: #90919e;
+}
+
+.roadmap-column ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.roadmap-column li {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #333443;
+}
+
+.roadmap-empty {
+  font-size: 13px;
+  color: #237a3c;
+  margin: 0;
+}
+
+.tone-critical {
+  border-top-color: #d64545;
+}
+
+.tone-medium {
+  border-top-color: #d6a545;
+}
+
+.tone-low {
+  border-top-color: #9a9bb0;
+}
+
+
+/* =========================
+   REQUIREMENT CARD EXTRAS
+========================= */
+
+.category-badge {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 3px 9px;
+  border-radius: 12px;
+  background: #f0effa;
+  color: #171d91;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.more-evidence {
+  margin-top: 10px;
+}
+
+.more-evidence summary {
+  font-size: 12px;
+  color: #171d91;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.more-evidence ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.more-evidence li {
+  font-size: 13px;
+  color: #555663;
+  line-height: 1.5;
+  margin-bottom: 6px;
+}
+
+
+/* =========================
    RESPONSIVE
 ========================= */
 
@@ -547,6 +762,18 @@ button {
   }
 
   .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .gap-summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .roadmap-grid {
     grid-template-columns: 1fr;
   }
 
